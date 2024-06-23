@@ -23,6 +23,7 @@ public class KeycloakController {
 
     @GetMapping(path = "/customers")
     public String customers(Principal principal, Model model) {
+        log.info("customers controller call");
         model.addAttribute("customers", customerDao.findAll());
         model.addAttribute("username", principal.getName());
         return "customers";
