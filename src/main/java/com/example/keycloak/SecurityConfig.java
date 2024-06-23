@@ -1,6 +1,7 @@
 package com.example.keycloak;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@Log4j2
 class SecurityConfig {
 
     private static final String GROUPS = "groups";
@@ -75,25 +77,32 @@ class SecurityConfig {
             boolean isOidc = authority instanceof OidcUserAuthority;
 
             if (isOidc) {
+                log.info("is OIDC");
                 var oidcUserAuthority = (OidcUserAuthority) authority;
                 var userInfo = oidcUserAuthority.getUserInfo();
+
+                log.info("USER INFO CLAIMS: {}", userInfo.getClaims());
 
                 // Tokens can be configured to return roles under
                 // Groups or REALM ACCESS hence have to check both
                 if (userInfo.hasClaim(REALM_ACCESS_CLAIM)) {
+                    log.info("is OIDC #1");
                     var realmAccess = userInfo.getClaimAsMap(REALM_ACCESS_CLAIM);
                     var roles = (Collection<String>) realmAccess.get(ROLES_CLAIM);
                     mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                 } else if (userInfo.hasClaim(GROUPS)) {
+                    log.info("is OIDC #2");
                     Collection<String> roles = (Collection<String>) userInfo.getClaim(
                             GROUPS);
                     mappedAuthorities.addAll(generateAuthoritiesFromClaim(roles));
                 }
             } else {
+                log.info("is OAUTH2");
                 var oauth2UserAuthority = (OAuth2UserAuthority) authority;
                 Map<String, Object> userAttributes = oauth2UserAuthority.getAttributes();
 
                 if (userAttributes.containsKey(REALM_ACCESS_CLAIM)) {
+                    log.info("is OAUTH2 #1");
                     Map<String, Object> realmAccess = (Map<String, Object>) userAttributes.get(
                             REALM_ACCESS_CLAIM);
                     Collection<String> roles = (Collection<String>) realmAccess.get(ROLES_CLAIM);
@@ -105,6 +114,7 @@ class SecurityConfig {
     }
 
     Collection<GrantedAuthority> generateAuthoritiesFromClaim(Collection<String> roles) {
+        log.info("generateAuthoritiesFromClaim");
         return roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).collect(
                 Collectors.toList());
     }
